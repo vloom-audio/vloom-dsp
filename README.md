@@ -12,9 +12,9 @@ processors as the built-in effects and instruments of
 nothing about the engine, a plugin format or a UI, the same code can later be
 wrapped as CLAP or VST 3 plugins.
 
-> **Status: just started.** Only the building blocks are here so far
-> (`SmoothedValue`). The first effects (EQ, compressor, limiter, delay,
-> reverb) come next.
+> **Status: just started.** The `Effect` concept that hosts wrap
+> (`Processor.hpp`), a first effect (`Gain`) and building blocks
+> (`SmoothedValue`). EQ, compressor, limiter, delay and reverb come next.
 
 ## Requirements
 

@@ -6,9 +6,10 @@ CPMAddPackage(
     GIT_TAG fa43b77429ba76c462b1898d6cd2f2d7a9416b14
     GIT_SHALLOW FALSE)
 
-# Test files mirror include/vloom/dsp/: tests/<Name>Tests.cpp
+# Test files mirror include/vloom/dsp/: tests/<dir>/<Name>Tests.cpp
 add_executable(vloom_dsp_tests
     SmoothedValueTests.cpp
+    effects/GainTests.cpp
     VersionTests.cpp)
 
 target_link_libraries(vloom_dsp_tests PRIVATE vloom::dsp Catch2::Catch2WithMain)
