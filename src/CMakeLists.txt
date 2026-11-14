@@ -2,7 +2,10 @@ add_library(vloom_dsp)
 add_library(vloom::dsp ALIAS vloom_dsp)
 
 target_sources(vloom_dsp PRIVATE
-    Version.cpp)
+    Version.cpp
+
+    # effects
+    effects/Gain.cpp)
 
 target_include_directories(vloom_dsp PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
