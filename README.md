@@ -13,8 +13,9 @@ nothing about the engine, a plugin format or a UI, the same code can later be
 wrapped as CLAP or VST 3 plugins.
 
 > **Status: just started.** The `Effect` concept that hosts wrap
-> (`Processor.hpp`), a first effect (`Gain`) and building blocks
-> (`SmoothedValue`). EQ, compressor, limiter, delay and reverb come next.
+> (`Processor.hpp`), the effects `Gain` and `Eq` (a parametric equalizer) and
+> building blocks (`SmoothedValue`, `Biquad`). Compressor, limiter, delay and
+> reverb come next.
 
 ## Requirements
 

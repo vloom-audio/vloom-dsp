@@ -18,6 +18,9 @@ struct ParameterSpec {
     double maxValue = 1.0;
     double defaultValue = 0.0;
     bool stepped = false; ///< whole numbers only (a switch, a choice)
+    /// What it belongs to, for a host that lays out controls, e.g. "Low
+    /// Shelf"; parameters of one group follow each other. Empty: none.
+    const char* group = "";
 };
 
 /// What describes a processor to a host.
