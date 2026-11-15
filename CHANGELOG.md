@@ -7,6 +7,15 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `Instrument` concept (`Processor.hpp`): an instrument a host wraps, with
+  `noteOn()` and `noteOff()`; its `process()` adds its sound.
+- `Wavetable`: four built-in tables (Basic Shapes, Filter Sweep, Formant,
+  Pulse Width) of 32 frames, each kept at 11 band limits so a cycle played at
+  any pitch does not alias.
+- `instruments/Synth` ("vloom.synth"): a wavetable synthesizer. Two wavetable
+  oscillators with unison, a sub oscillator and noise; a low-pass, band-pass
+  or high-pass filter with drive; three envelopes and four LFOs; 16 voices, or
+  mono with legato and glide.
 - Project setup: CMake presets (dev, release, asan, tsan), CI on Linux, macOS
   and Windows, clang-format and commit message checks.
 - `SmoothedValue`: a parameter that glides to its target in a straight line,

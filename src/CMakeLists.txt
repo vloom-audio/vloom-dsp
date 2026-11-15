@@ -3,10 +3,14 @@ add_library(vloom::dsp ALIAS vloom_dsp)
 
 target_sources(vloom_dsp PRIVATE
     Version.cpp
+    Wavetable.cpp
 
     # effects
     effects/Eq.cpp
-    effects/Gain.cpp)
+    effects/Gain.cpp
+
+    # instruments
+    instruments/Synth.cpp)
 
 target_include_directories(vloom_dsp PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
