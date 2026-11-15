@@ -51,6 +51,30 @@ concept Effect = std::default_initializable<T>
            { constEffect.latencyFrames() } noexcept -> std::same_as<int>;
        };
 
+/// An instrument that a host can wrap: it is given notes and adds its sound.
+///
+/// Like an Effect (prepare() sizes all memory; the rest is real-time), with
+/// notes in place of an input:
+/// - `noteOn(key, velocity)` starts MIDI key `key` (0 .. 127) at `velocity`
+///   (0 .. 1); `noteOff(key)` lets it ring out. Both take effect at the next
+///   `process()`: a host splits its block at each note for sample accuracy.
+/// - `process()` ADDS the instrument's sound to `numChannels` channels.
+/// - `reset()` silences every note at once.
+template <typename T>
+concept Instrument = std::default_initializable<T>
+    && requires(T instrument, const T constInstrument, double sampleRate, int frames, std::uint32_t id,
+        double value, float* const* channels, int key, float velocity) {
+           { T::spec() } -> std::same_as<ProcessorSpec>;
+           { T::parameters() } -> std::convertible_to<std::span<const ParameterSpec>>;
+           instrument.prepare(sampleRate, frames);
+           { instrument.setParameter(id, value) } noexcept;
+           { instrument.noteOn(key, velocity) } noexcept;
+           { instrument.noteOff(key) } noexcept;
+           { instrument.process(channels, frames, frames) } noexcept;
+           { instrument.reset() } noexcept;
+           { constInstrument.latencyFrames() } noexcept -> std::same_as<int>;
+       };
+
 /// The parameter with `id` in `list`, or nullptr.
 [[nodiscard]] constexpr const ParameterSpec* findParameter(
     std::span<const ParameterSpec> list, std::uint32_t id) noexcept

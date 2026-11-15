@@ -12,7 +12,9 @@ add_executable(vloom_dsp_tests
     SmoothedValueTests.cpp
     effects/EqTests.cpp
     effects/GainTests.cpp
-    VersionTests.cpp)
+    instruments/SynthTests.cpp
+    VersionTests.cpp
+    WavetableTests.cpp)
 
 target_link_libraries(vloom_dsp_tests PRIVATE vloom::dsp Catch2::Catch2WithMain)
 vloom_dsp_set_warnings(vloom_dsp_tests)
