@@ -8,7 +8,9 @@ CPMAddPackage(
 
 # Test files mirror include/vloom/dsp/: tests/<dir>/<Name>Tests.cpp
 add_executable(vloom_dsp_tests
+    BiquadTests.cpp
     SmoothedValueTests.cpp
+    effects/EqTests.cpp
     effects/GainTests.cpp
     VersionTests.cpp)
 

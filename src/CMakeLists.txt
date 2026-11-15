@@ -5,6 +5,7 @@ target_sources(vloom_dsp PRIVATE
     Version.cpp
 
     # effects
+    effects/Eq.cpp
     effects/Gain.cpp)
 
 target_include_directories(vloom_dsp PUBLIC
