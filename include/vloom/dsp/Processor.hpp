@@ -3,8 +3,10 @@
 #pragma once
 
 #include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <span>
+#include <string_view>
 
 namespace vloom::dsp {
 
@@ -103,6 +105,52 @@ concept TempoAware = requires(T p, double bpm) {
     { p.setTempo(bpm) } noexcept;
 };
 
+/// One live value a processor publishes for a UI (ADR 0005): a tuner's
+/// frequency, a gate's open state, a compressor's gain reduction.
+struct ReadoutSpec {
+    const char* id = ""; ///< stable across versions, e.g. "gain_reduction_db"
+    const char* name = "";
+    const char* unit = ""; ///< e.g. "dB", "Hz"; empty: none
+    double minValue = 0.0; ///< the range a meter shows; the value may leave it
+    double maxValue = 1.0;
+    bool stepped = false; ///< whole numbers only (a flag: 0 or 1)
+};
+
+/// A processor that publishes live values (ADR 0005).
+///
+/// - `readoutSpecs()` lists them. A readout's index is its position in that
+///   list; entries are only ever appended, so indices and ids stay stable.
+/// - `readout(index)` is the value now (as of the end of the last
+///   `process()`): lock-free, wait-free, safe from any thread, while audio
+///   runs. 0 for an index out of range; before prepare(), 0 too.
+/// - `reset()` puts them back to their resting values (a meter's floor).
+template <typename T>
+concept HasReadouts = requires(const T constProcessor, std::size_t index) {
+    { T::readoutSpecs() } -> std::convertible_to<std::span<const ReadoutSpec>>;
+    { constProcessor.readout(index) } noexcept -> std::same_as<float>;
+};
+
+/// An instrument that follows the pitch bend wheel (ADR 0006).
+///
+/// `pitchBend(amount)` takes -1 (down) .. 1 (up), 0 at rest; how far that
+/// bends is the instrument's business (Synth: its Bend Range parameter).
+/// Real-time safe, on the thread that calls process(), and it takes effect
+/// at the next process() for every voice. NaN is ignored; values out of range
+/// are clamped. Until it is called, the wheel is at rest.
+template <typename T>
+concept PitchBendable = requires(T processor, float amount) {
+    { processor.pitchBend(amount) } noexcept;
+};
+
+/// An instrument that follows the modulation wheel (ADR 0006).
+///
+/// `modWheel(amount)` takes 0 .. 1; what it moves is the instrument's
+/// business. Same rules as `pitchBend()`. Until it is called, it is at 0.
+template <typename T>
+concept ModWheelAware = requires(T processor, float amount) {
+    { processor.modWheel(amount) } noexcept;
+};
+
 /// The parameter with `id` in `list`, or nullptr.
 [[nodiscard]] constexpr const ParameterSpec* findParameter(
     std::span<const ParameterSpec> list, std::uint32_t id) noexcept
@@ -111,6 +159,15 @@ concept TempoAware = requires(T p, double bpm) {
         if (parameter.id == id)
             return &parameter;
     return nullptr;
+}
+
+/// The index of the readout with `id` in `list`, or -1.
+[[nodiscard]] constexpr int findReadout(std::span<const ReadoutSpec> list, std::string_view id) noexcept
+{
+    for (std::size_t i = 0; i < list.size(); ++i)
+        if (id == list[i].id)
+            return static_cast<int>(i);
+    return -1;
 }
 
 } // namespace vloom::dsp

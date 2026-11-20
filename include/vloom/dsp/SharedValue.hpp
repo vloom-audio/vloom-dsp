@@ -2,7 +2,9 @@
 // Copyright (c) 2026 Vloom Audio contributors
 #pragma once
 
+#include <array>
 #include <atomic>
+#include <cstddef>
 
 namespace vloom::dsp {
 
@@ -35,6 +37,31 @@ public:
 
 private:
     std::atomic<T> value_{};
+};
+
+/// The values behind a processor's readouts (HasReadouts, ADR 0005): the
+/// audio thread stores, any thread loads. An index out of range stores
+/// nothing and loads 0.
+template <std::size_t N> class ReadoutValues {
+public:
+    void store(std::size_t index, float value) noexcept
+    {
+        if (index < N)
+            values_[index].store(value);
+    }
+    [[nodiscard]] float load(std::size_t index) const noexcept
+    {
+        return index < N ? values_[index].load() : 0.0f;
+    }
+    /// Every value back to 0.
+    void clear() noexcept
+    {
+        for (SharedValue<float>& value : values_)
+            value.store(0.0f);
+    }
+
+private:
+    std::array<SharedValue<float>, N> values_{};
 };
 
 } // namespace vloom::dsp

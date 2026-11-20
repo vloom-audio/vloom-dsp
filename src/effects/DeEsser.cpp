@@ -85,7 +85,7 @@ void DeEsser::reset() noexcept
     untilControl_ = 0;
     if (sampleRate_ > 0.0)
         updateFilter(true);
-    reductionDb_.store(0.0f, std::memory_order_relaxed);
+    reductionDb_.store(0.0f);
 }
 
 void DeEsser::process(float* const* channels, int numChannels, int numFrames) noexcept
@@ -139,7 +139,7 @@ void DeEsser::process(float* const* channels, int numChannels, int numFrames) no
         states_[static_cast<std::size_t>(ch)].flushDenormals();
         shelfStates_[static_cast<std::size_t>(ch)].flushDenormals();
     }
-    reductionDb_.store(static_cast<float>(reduction_), std::memory_order_relaxed);
+    reductionDb_.store(static_cast<float>(reduction_));
 }
 
 } // namespace vloom::dsp
