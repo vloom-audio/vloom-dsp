@@ -75,6 +75,18 @@ concept Instrument = std::default_initializable<T>
            { constInstrument.latencyFrames() } noexcept -> std::same_as<int>;
        };
 
+/// An Effect that can also take a key signal (sidechain).
+template <typename T>
+concept SidechainEffect
+    = Effect<T> && requires(T e, float* const* ch, const float* const* key, int n, int k, int f) {
+          { e.processWithSidechain(ch, key, n, k, f) } noexcept;
+      };
+/// A processor that follows the host's tempo (beats per minute, > 0).
+template <typename T>
+concept TempoAware = requires(T p, double bpm) {
+    { p.setTempo(bpm) } noexcept;
+};
+
 /// The parameter with `id` in `list`, or nullptr.
 [[nodiscard]] constexpr const ParameterSpec* findParameter(
     std::span<const ParameterSpec> list, std::uint32_t id) noexcept
