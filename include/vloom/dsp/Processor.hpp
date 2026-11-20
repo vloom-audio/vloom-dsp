@@ -75,13 +75,29 @@ concept Instrument = std::default_initializable<T>
            { constInstrument.latencyFrames() } noexcept -> std::same_as<int>;
        };
 
+// Optional capabilities (ADR 0003). A host checks for them with the concepts
+// below; a processor without them is wrapped as before.
+
 /// An Effect that can also take a key signal (sidechain).
+///
+/// `processWithSidechain(channels, key, numChannels, numKeyChannels, frames)`
+/// is `process()` with a key: the effect works in place on `channels` as
+/// usual, but its detector listens to the `numKeyChannels` read-only `key`
+/// channels of the same `frames`. A host calls it only while a key is
+/// connected, and plain `process()` otherwise; the effect then keys off its
+/// own input. `key` null or `numKeyChannels` < 1 also means: no key.
 template <typename T>
 concept SidechainEffect
     = Effect<T> && requires(T e, float* const* ch, const float* const* key, int n, int k, int f) {
           { e.processWithSidechain(ch, key, n, k, f) } noexcept;
       };
+
 /// A processor that follows the host's tempo (beats per minute, > 0).
+///
+/// `setTempo(bpm)` is real-time safe and takes effect at the next
+/// `process()`; a host calls it before the first block and whenever the tempo
+/// changes. A non-finite or non-positive value is ignored. Until it is
+/// called, the processor assumes 120 BPM.
 template <typename T>
 concept TempoAware = requires(T p, double bpm) {
     { p.setTempo(bpm) } noexcept;
