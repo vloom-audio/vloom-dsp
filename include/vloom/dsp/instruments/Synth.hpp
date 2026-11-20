@@ -2,8 +2,10 @@
 // Copyright (c) 2026 Vloom Audio contributors
 #pragma once
 
+#include "vloom/dsp/Envelope.hpp"
 #include "vloom/dsp/Processor.hpp"
 #include "vloom/dsp/SmoothedValue.hpp"
+#include "vloom/dsp/StateVariableFilter.hpp"
 #include "vloom/dsp/Wavetable.hpp"
 
 #include <array>
@@ -179,28 +181,6 @@ public:
     [[nodiscard]] int activeVoices() const noexcept;
 
 private:
-    /// Attack, hold, decay, sustain, release.
-    struct EnvelopeShape {
-        float attackStep = 1.0f; ///< added per frame
-        int holdFrames = 0;
-        float decayFactor = 0.0f; ///< the distance to the sustain level shrinks by this per frame
-        float sustain = 1.0f;
-        float releaseFactor = 0.0f;
-    };
-    struct Envelope {
-        enum class Stage { Idle, Attack, Hold, Decay, Sustain, Release };
-        Stage stage = Stage::Idle;
-        float level = 0.0f;
-        int holdLeft = 0;
-
-        void start() noexcept { stage = Stage::Attack; }
-        void release() noexcept
-        {
-            if (stage != Stage::Idle)
-                stage = Stage::Release;
-        }
-        [[nodiscard]] float next(const EnvelopeShape& shape) noexcept;
-    };
     struct Lfo {
         float phase = 0.0f; ///< 0 .. 1
         float held = 0.0f; ///< the Random shape's value for this cycle
@@ -233,8 +213,7 @@ private:
         float subPhase = 0.0f;
         std::uint32_t noiseState = 1;
         float noiseLow = 0.0f; ///< the noise's low-passed part, for its colour
-        std::array<float, 2> filterBand{}; ///< filter state, left and right
-        std::array<float, 2> filterLow{};
+        std::array<VoiceFilterState, 2> filter{}; ///< left and right
         // Until the next control step:
         std::array<OscillatorRun, 2> runs;
         float subStep = 0.0f;

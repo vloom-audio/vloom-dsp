@@ -34,6 +34,8 @@ wrapped as CLAP or VST 3 plugins.
 | `vloom.transient` | `effects/TransientShaper` | Attack and sustain shaper, level-independent | 0 |
 | `vloom.bitcrusher` | `effects/Bitcrusher` | Bit depth and sample-rate reduction | 0 |
 | `vloom.synth` | `instruments/Synth` | Wavetable synthesizer | 0 |
+| `vloom.sampler` | `instruments/Sampler` | One sample across the keyboard: loops, filter, mono and glide (1 sample slot) | 0 |
+| `vloom.drums` | `instruments/DrumSampler` | 16 pads on MIDI keys, with tune, reverse and choke groups (16 sample slots) | 0 |
 
 Each one fits the `Effect` or `Instrument` concept in `Processor.hpp`. Two
 optional capabilities ([ADR 0003](docs/adr/0003-sidechain-and-tempo-extensions.md)):
@@ -42,10 +44,14 @@ signal) and `TempoAware` (delay, chorus, flanger, phaser, tremolo:
 `setTempo()`, 120 BPM until then). The modulation effects' LFOs run free;
 they do not follow the transport position.
 
+The sampler and drums are `SampleSlots`: they play audio the host decodes
+and hands over with `setSample()`, and do no file I/O
+([ADR 0002](docs/adr/0002-sample-data.md)).
+
 Building blocks: `SmoothedValue`, `Biquad`, `Svf` (state variable filter),
 `DelayLine`, `Oversampler`, `SidechainFilter`, `SharedValue` (lock-free
 meter values), `ParameterValues`, `NoteValue` (tempo-synced note lengths),
-`Wavetable`.
+`Envelope` (AHDSR), `StateVariableFilter` (the synth's filter), `Wavetable`.
 
 ## Requirements
 

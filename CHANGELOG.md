@@ -69,6 +69,25 @@ and the project uses [Semantic Versioning](https://semver.org/).
   through bit for bit at Mix 0, the tremolo at depth 0, the de-esser below
   its threshold. Chorus, flanger, phaser and tremolo take the host tempo
   through `setTempo()` (120 BPM until then); their LFOs run free.
+- `Sample.hpp` (ADR 0002): `SampleBuffer`, decoded audio the host hands over
+  (one or two channels, any rate, immutable); `SampleSlot`, which swaps
+  samples between the host thread and the audio thread without locks, and
+  frees replaced ones only on the host thread; the optional `SampleSlots`
+  capability (`setSample()`, `sample()`, `sampleInfo()`, `collectGarbage()`);
+  `hermite()` interpolation.
+- `instruments/Sampler` ("vloom.sampler"): one sample across the keyboard.
+  Root key, transpose, fine tune, key range, velocity sensitivity, start;
+  forward or ping-pong loops with a crossfade; amp envelope; low-pass,
+  band-pass or high-pass filter with its own envelope and key tracking;
+  32 voices, or mono with legato and glide; gain and pan. Hermite resampling
+  keeps the pitch whatever the rates of the sample and the host.
+- `instruments/DrumSampler` ("vloom.drums"): 16 pads on keys 36 upward (each
+  can be moved), each with a sample, tune and fine tune, decay, release,
+  gain, pan, start, reverse, choke group (1 .. 8), one-shot or gate mode and
+  velocity sensitivity; master gain; 32 voices.
+- `Envelope.hpp` and `StateVariableFilter.hpp`: the attack, hold, decay,
+  sustain, release envelope and the state-variable filter, moved out of
+  `Synth` to be shared (Synth sounds exactly as before).
 - `Instrument` concept (`Processor.hpp`): an instrument a host wraps, with
   `noteOn()` and `noteOff()`; its `process()` adds its sound.
 - `Wavetable`: four built-in tables (Basic Shapes, Filter Sweep, Formant,

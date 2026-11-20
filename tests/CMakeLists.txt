@@ -27,11 +27,14 @@ add_executable(vloom_dsp_tests
     effects/TransientShaperTests.cpp
     effects/TremoloTests.cpp
     effects/UtilityTests.cpp
+    instruments/DrumSamplerTests.cpp
+    instruments/SamplerTests.cpp
+    instruments/SynthTests.cpp
     NoteValueTests.cpp
     OversamplerTests.cpp
+    SampleTests.cpp
     SmoothedValueTests.cpp
     SvfTests.cpp
-    instruments/SynthTests.cpp
     VersionTests.cpp
     WavetableTests.cpp
 
