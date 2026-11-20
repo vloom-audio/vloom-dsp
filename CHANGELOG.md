@@ -43,6 +43,32 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - Tests: a check that `process()` allocates nothing (the test program
   counts calls to operator new), shared effect checks (parameter lists,
   silence, every parameter at its ends and NaN at 44.1 .. 192 kHz).
+- `NoteValue.hpp`: the note lengths (4/1 .. 1/32, dotted and triplet) a
+  tempo-synced "Note" parameter chooses from, with `noteSeconds()` and
+  `noteHz()`.
+- `effects/Chorus` ("vloom.chorus"): 1 .. 4 voices on one modulated delay
+  line, delay, depth, feedback, stereo spread and width, mix; the LFO runs in
+  Hz or synced to the tempo.
+- `effects/Flanger` ("vloom.flanger"): a swept short delay with positive or
+  negative feedback (+-95 %), stereo phase, mix; free or tempo-synced LFO.
+- `effects/Phaser` ("vloom.phaser"): 2 .. 12 all-pass stages (one notch per
+  two), center frequency, depth, feedback, stereo phase, mix; free or
+  tempo-synced LFO. Changing the stage count fades.
+- `effects/Tremolo` ("vloom.tremolo"): tremolo or auto-pan with a sine,
+  triangle or rounded square LFO, depth, stereo phase; free or tempo-synced.
+- `effects/DeEsser` ("vloom.deesser"): high-pass detection at a frequency
+  against a threshold, up to a range of reduction, wideband or split-band
+  (a dynamic high shelf), listen; `gainReductionDb()` for a meter.
+- `effects/TransientShaper` ("vloom.transient"): attack and sustain boost or
+  cut from envelope differences in dB, so independent of the level; speed,
+  output, mix.
+- `effects/Bitcrusher` ("vloom.bitcrusher"): drive, bit depth (1 .. 24,
+  fractional), downsampling (1 .. 64x, fractional) with jitter, dither, an
+  optional anti-alias filter, output, mix.
+- None of these effects has latency. Those with a Mix pass their input
+  through bit for bit at Mix 0, the tremolo at depth 0, the de-esser below
+  its threshold. Chorus, flanger, phaser and tremolo take the host tempo
+  through `setTempo()` (120 BPM until then); their LFOs run free.
 - `Instrument` concept (`Processor.hpp`): an instrument a host wraps, with
   `noteOn()` and `noteOff()`; its `process()` adds its sound.
 - `Wavetable`: four built-in tables (Basic Shapes, Filter Sweep, Formant,

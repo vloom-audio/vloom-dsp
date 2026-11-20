@@ -26,16 +26,26 @@ wrapped as CLAP or VST 3 plugins.
 | `vloom.saturator` | `effects/Saturator` | Waveshaper (soft, tube, tape, hard), 2x/4x oversampled | 31 / 36 |
 | `vloom.utility` | `effects/Utility` | Gain, balance, width, mono, polarity, swap, DC block | 0 |
 | `vloom.filter` | `effects/Filter` | Resonant LP/HP/BP/notch, 12/24 dB, drive | 0 |
+| `vloom.chorus` | `effects/Chorus` | Chorus, 1 .. 4 voices, tempo sync | 0 |
+| `vloom.flanger` | `effects/Flanger` | Flanger with +- feedback, tempo sync | 0 |
+| `vloom.phaser` | `effects/Phaser` | Phaser, 2 .. 12 stages, tempo sync | 0 |
+| `vloom.tremolo` | `effects/Tremolo` | Tremolo and auto-pan, tempo sync | 0 |
+| `vloom.deesser` | `effects/DeEsser` | De-esser, wideband or split-band, with listen | 0 |
+| `vloom.transient` | `effects/TransientShaper` | Attack and sustain shaper, level-independent | 0 |
+| `vloom.bitcrusher` | `effects/Bitcrusher` | Bit depth and sample-rate reduction | 0 |
 | `vloom.synth` | `instruments/Synth` | Wavetable synthesizer | 0 |
 
 Each one fits the `Effect` or `Instrument` concept in `Processor.hpp`. Two
 optional capabilities ([ADR 0003](docs/adr/0003-sidechain-and-tempo-extensions.md)):
 `SidechainEffect` (compressor, gate: `processWithSidechain()` with a key
-signal) and `TempoAware` (delay: `setTempo()`).
+signal) and `TempoAware` (delay, chorus, flanger, phaser, tremolo:
+`setTempo()`, 120 BPM until then). The modulation effects' LFOs run free;
+they do not follow the transport position.
 
 Building blocks: `SmoothedValue`, `Biquad`, `Svf` (state variable filter),
 `DelayLine`, `Oversampler`, `SidechainFilter`, `SharedValue` (lock-free
-meter values), `ParameterValues`, `Wavetable`.
+meter values), `ParameterValues`, `NoteValue` (tempo-synced note lengths),
+`Wavetable`.
 
 ## Requirements
 

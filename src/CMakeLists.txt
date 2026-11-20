@@ -7,15 +7,22 @@ target_sources(vloom_dsp PRIVATE
     Wavetable.cpp
 
     # effects
+    effects/Bitcrusher.cpp
+    effects/Chorus.cpp
     effects/Compressor.cpp
+    effects/DeEsser.cpp
     effects/Delay.cpp
     effects/Eq.cpp
     effects/Filter.cpp
+    effects/Flanger.cpp
     effects/Gain.cpp
     effects/Gate.cpp
     effects/Limiter.cpp
+    effects/Phaser.cpp
     effects/Reverb.cpp
     effects/Saturator.cpp
+    effects/TransientShaper.cpp
+    effects/Tremolo.cpp
     effects/Utility.cpp
 
     # instruments
