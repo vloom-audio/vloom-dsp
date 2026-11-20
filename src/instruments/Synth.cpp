@@ -13,11 +13,8 @@ namespace {
 
 constexpr float kPi = std::numbers::pi_v<float>;
 constexpr float kVoiceGain = 0.5f; ///< room for several voices before the volume
-constexpr float kSilent = 1.0e-4f; ///< an envelope this low has ended (-80 dB)
 constexpr float kDetuneSemitones = 0.5f; ///< unison at 100 %: the outer copies this far out
 constexpr float kUnisonSpread = 0.8f; ///< how far the outer copies sit to the sides
-constexpr float kMinAttackSeconds = 0.0005f; ///< shorter clicks
-constexpr float kMinReleaseSeconds = 0.002f;
 constexpr int kOscillatorParameters = Synth::kBOn - Synth::kAOn;
 
 constexpr const char* kA = "Oscillator A";
@@ -209,44 +206,6 @@ Synth::Synth() noexcept
         values_[parameter.id] = parameter.defaultValue;
 }
 
-float Synth::Envelope::next(const EnvelopeShape& shape) noexcept
-{
-    switch (stage) {
-    case Stage::Idle:
-        return 0.0f;
-    case Stage::Attack:
-        level += shape.attackStep;
-        if (level >= 1.0f) {
-            level = 1.0f;
-            holdLeft = shape.holdFrames;
-            stage = holdLeft > 0 ? Stage::Hold : Stage::Decay;
-        }
-        break;
-    case Stage::Hold:
-        if (--holdLeft <= 0)
-            stage = Stage::Decay;
-        break;
-    case Stage::Decay:
-        level = shape.sustain + (level - shape.sustain) * shape.decayFactor;
-        if (level - shape.sustain < kSilent) {
-            level = shape.sustain;
-            stage = Stage::Sustain;
-        }
-        break;
-    case Stage::Sustain:
-        level = shape.sustain; // follows the knob
-        break;
-    case Stage::Release:
-        level *= shape.releaseFactor;
-        if (level < kSilent) {
-            level = 0.0f;
-            stage = Stage::Idle;
-        }
-        break;
-    }
-    return level;
-}
-
 void Synth::prepare(double sampleRate, int maxBlockFrames)
 {
     const bool usable = std::isfinite(sampleRate) && sampleRate > 0.0 && maxBlockFrames > 0;
@@ -272,19 +231,11 @@ void Synth::setParameter(std::uint32_t id, double value) noexcept
     dirty_ = true;
 }
 
-Synth::EnvelopeShape Synth::envelopeShape(std::uint32_t attackId) const noexcept
+EnvelopeShape Synth::envelopeShape(std::uint32_t attackId) const noexcept
 {
-    const auto rate = static_cast<float>(sampleRate_);
     const auto seconds = [this](std::uint32_t id) { return static_cast<float>(value(id) / 1000.0); };
-    // Decay and release are done (to -43 dB) in the time on the knob.
-    const auto factor = [rate](float time) { return std::exp(-5.0f / (time * rate)); };
-    EnvelopeShape shape;
-    shape.attackStep = std::min(1.0f, 1.0f / (std::max(seconds(attackId), kMinAttackSeconds) * rate));
-    shape.holdFrames = static_cast<int>(seconds(attackId + 1) * rate);
-    shape.decayFactor = factor(std::max(seconds(attackId + 2), kMinReleaseSeconds));
-    shape.sustain = static_cast<float>(value(attackId + 3) / 100.0);
-    shape.releaseFactor = factor(std::max(seconds(attackId + 4), kMinReleaseSeconds));
-    return shape;
+    return EnvelopeShape::make(static_cast<float>(sampleRate_), seconds(attackId), seconds(attackId + 1),
+        seconds(attackId + 2), static_cast<float>(value(attackId + 3) / 100.0), seconds(attackId + 4));
 }
 
 void Synth::refresh() noexcept
@@ -318,8 +269,7 @@ void Synth::reset() noexcept
         voice.held = false;
         voice.level = Envelope{};
         voice.mods = {};
-        voice.filterBand = {};
-        voice.filterLow = {};
+        voice.filter = {};
     }
     monoCount_ = 0;
     anyNoteYet_ = false;
@@ -356,8 +306,7 @@ void Synth::start(Voice& voice, int key, float velocity, bool retrigger) noexcep
     const bool continues = voice.active && on(kMono); // the one voice moves on: it glides from where it is
     if (!voice.active) {
         // A fresh voice: clean filter, and unison copies that start apart.
-        voice.filterBand = {};
-        voice.filterLow = {};
+        voice.filter = {};
         voice.noiseLow = 0.0f;
         voice.noiseState = nextRandom(seed_) | 1u;
         voice.subPhase = 0.0f;
@@ -590,11 +539,7 @@ void Synth::render(Voice& voice, float* left, float* right, int frames) noexcept
     const float push = 1.0f + 7.0f * drive;
     const float pushBack = 1.0f / softClip(push);
     const auto filterMix = static_cast<float>(value(kFilterMix) / 100.0);
-    const float g = voice.filterG;
-    const float k = voice.filterK;
-    const float a1 = 1.0f / (1.0f + g * (g + k));
-    const float a2 = g * a1;
-    const float a3 = g * a2;
+    const SvfCoefficients coefficients = SvfCoefficients::make(voice.filterG, voice.filterK);
     const Wavetable& sine = *tables_[0];
     const float gain = voice.velocity * voice.tremolo * kVoiceGain;
 
@@ -643,14 +588,10 @@ void Synth::render(Voice& voice, float* left, float* right, int frames) noexcept
             for (std::size_t ch = 0; ch < 2; ++ch) {
                 const float in = drive > 0.0f ? softClip(wet[ch] * push) * pushBack : wet[ch];
                 // A state-variable filter that stays stable while its cutoff moves.
-                const float v3 = in - voice.filterLow[ch];
-                const float v1 = a1 * voice.filterBand[ch] + a2 * v3;
-                const float v2 = voice.filterLow[ch] + a2 * voice.filterBand[ch] + a3 * v3;
-                voice.filterBand[ch] = 2.0f * v1 - voice.filterBand[ch];
-                voice.filterLow[ch] = 2.0f * v2 - voice.filterLow[ch];
-                const float out = type == FilterType::LowPass ? v2
-                    : type == FilterType::BandPass            ? v1
-                                                              : in - k * v1 - v2;
+                const SvfState::Outputs filtered = voice.filter[ch].process(coefficients, in);
+                const float out = type == FilterType::LowPass ? filtered.low
+                    : type == FilterType::BandPass            ? filtered.band
+                                                              : filtered.high;
                 wet[ch] = in + (out - in) * filterMix;
             }
         }
@@ -660,12 +601,8 @@ void Synth::render(Voice& voice, float* left, float* right, int frames) noexcept
         left[i] += (wet[0] + dry[0]) * level;
         right[i] += (wet[1] + dry[1]) * level;
     }
-    for (std::size_t ch = 0; ch < 2; ++ch) { // no denormals left ringing in the filter
-        if (std::abs(voice.filterBand[ch]) < 1.0e-20f)
-            voice.filterBand[ch] = 0.0f;
-        if (std::abs(voice.filterLow[ch]) < 1.0e-20f)
-            voice.filterLow[ch] = 0.0f;
-    }
+    for (SvfState& state : voice.filter) // no denormals left ringing in the filter
+        state.flushDenormals();
     if (voice.level.stage == Envelope::Stage::Idle) {
         voice.active = false;
         voice.held = false;
