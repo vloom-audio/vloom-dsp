@@ -213,7 +213,7 @@ private:
         float subPhase = 0.0f;
         std::uint32_t noiseState = 1;
         float noiseLow = 0.0f; ///< the noise's low-passed part, for its colour
-        std::array<SvfState, 2> filter{}; ///< left and right
+        std::array<VoiceFilterState, 2> filter{}; ///< left and right
         // Until the next control step:
         std::array<OscillatorRun, 2> runs;
         float subStep = 0.0f;

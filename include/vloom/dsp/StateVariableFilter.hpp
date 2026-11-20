@@ -11,7 +11,7 @@ namespace vloom::dsp {
 /// The coefficients of a state-variable filter (12 dB per octave; Andrew
 /// Simper's trapezoidal form), which stays stable while its cutoff moves.
 /// Real-time safe.
-struct SvfCoefficients {
+struct VoiceFilterCoefficients {
     float g = 0.0f; ///< tan(pi * cutoff / rate)
     float k = 2.0f; ///< 1 / Q
     float a1 = 1.0f;
@@ -19,9 +19,9 @@ struct SvfCoefficients {
     float a3 = 0.0f;
 
     /// From `g` and `k` as above.
-    [[nodiscard]] static SvfCoefficients make(float g, float k) noexcept
+    [[nodiscard]] static VoiceFilterCoefficients make(float g, float k) noexcept
     {
-        SvfCoefficients c;
+        VoiceFilterCoefficients c;
         c.g = g;
         c.k = k;
         c.a1 = 1.0f / (1.0f + g * (g + k));
@@ -32,7 +32,8 @@ struct SvfCoefficients {
 
     /// `cutoff` in Hz (kept between 20 Hz and 0.45 of the rate); `resonance`
     /// 0 .. 1 gives Q 0.5 .. 17.
-    [[nodiscard]] static SvfCoefficients design(float cutoff, float sampleRate, float resonance) noexcept
+    [[nodiscard]] static VoiceFilterCoefficients design(
+        float cutoff, float sampleRate, float resonance) noexcept
     {
         const float f = std::clamp(cutoff, 20.0f, 0.45f * sampleRate);
         return make(std::tan(std::numbers::pi_v<float> * f / sampleRate),
@@ -41,7 +42,7 @@ struct SvfCoefficients {
 };
 
 /// The memory of one channel of a state-variable filter.
-struct SvfState {
+struct VoiceFilterState {
     float band = 0.0f;
     float low = 0.0f;
 
@@ -51,7 +52,7 @@ struct SvfState {
         float high = 0.0f;
     };
 
-    [[nodiscard]] Outputs process(const SvfCoefficients& c, float in) noexcept
+    [[nodiscard]] Outputs process(const VoiceFilterCoefficients& c, float in) noexcept
     {
         const float v3 = in - low;
         const float v1 = c.a1 * band + c.a2 * v3;

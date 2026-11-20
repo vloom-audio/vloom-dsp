@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vloom Audio contributors
-#include "../AllocationCounter.hpp"
 #include "../TestSignals.hpp"
+#include "../support/AllocationCounter.hpp"
 #include "vloom/dsp/instruments/Sampler.hpp"
 
 #include <catch2/catch_approx.hpp>

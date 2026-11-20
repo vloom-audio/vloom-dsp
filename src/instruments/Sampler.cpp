@@ -408,7 +408,7 @@ void Sampler::control(Voice& voice) noexcept
         const double octaves = value(kFilterEnvAmount) / 100.0 * kCutoffOctaves * voice.filterEnv.level
             + value(kKeyTrack) / 100.0 * fromRoot / 12.0;
         const double cutoff = value(kCutoff) * std::exp2(std::clamp(octaves, -20.0, 20.0));
-        voice.coefficients = SvfCoefficients::design(
+        voice.coefficients = VoiceFilterCoefficients::design(
             static_cast<float>(cutoff), rate, static_cast<float>(value(kResonance) / 100.0));
     }
 }
@@ -460,7 +460,8 @@ void Sampler::render(Voice& voice, float* left, float* right, int frames) noexce
         out[1] = stereo ? frameAt(1, voice.position) : out[0];
         if (type != FilterType::Off) {
             for (std::size_t ch = 0; ch < (stereo ? 2u : 1u); ++ch) {
-                const SvfState::Outputs filtered = voice.filter[ch].process(voice.coefficients, out[ch]);
+                const VoiceFilterState::Outputs filtered
+                    = voice.filter[ch].process(voice.coefficients, out[ch]);
                 out[ch] = type == FilterType::LowPass ? filtered.low
                     : type == FilterType::BandPass    ? filtered.band
                                                       : filtered.high;
@@ -497,7 +498,7 @@ void Sampler::render(Voice& voice, float* left, float* right, int frames) noexce
         if (!voice.active)
             break;
     }
-    for (SvfState& state : voice.filter)
+    for (VoiceFilterState& state : voice.filter)
         state.flushDenormals();
     if (voice.amp.idle()) {
         voice.active = false;

@@ -2,6 +2,16 @@
 // Copyright (c) 2026 Vloom Audio contributors
 #pragma once
 
+#include <cstddef>
+
+namespace vloom::test {
+
+/// How many times the test program has called operator new so far, on any
+/// thread.
+[[nodiscard]] std::size_t allocationCount() noexcept;
+
+} // namespace vloom::test
+
 namespace vloom::dsp::test {
 
 /// Counts the allocations and frees made with operator new and delete on

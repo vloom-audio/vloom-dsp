@@ -539,7 +539,7 @@ void Synth::render(Voice& voice, float* left, float* right, int frames) noexcept
     const float push = 1.0f + 7.0f * drive;
     const float pushBack = 1.0f / softClip(push);
     const auto filterMix = static_cast<float>(value(kFilterMix) / 100.0);
-    const SvfCoefficients coefficients = SvfCoefficients::make(voice.filterG, voice.filterK);
+    const VoiceFilterCoefficients coefficients = VoiceFilterCoefficients::make(voice.filterG, voice.filterK);
     const Wavetable& sine = *tables_[0];
     const float gain = voice.velocity * voice.tremolo * kVoiceGain;
 
@@ -588,7 +588,7 @@ void Synth::render(Voice& voice, float* left, float* right, int frames) noexcept
             for (std::size_t ch = 0; ch < 2; ++ch) {
                 const float in = drive > 0.0f ? softClip(wet[ch] * push) * pushBack : wet[ch];
                 // A state-variable filter that stays stable while its cutoff moves.
-                const SvfState::Outputs filtered = voice.filter[ch].process(coefficients, in);
+                const VoiceFilterState::Outputs filtered = voice.filter[ch].process(coefficients, in);
                 const float out = type == FilterType::LowPass ? filtered.low
                     : type == FilterType::BandPass            ? filtered.band
                                                               : filtered.high;
@@ -601,7 +601,7 @@ void Synth::render(Voice& voice, float* left, float* right, int frames) noexcept
         left[i] += (wet[0] + dry[0]) * level;
         right[i] += (wet[1] + dry[1]) * level;
     }
-    for (SvfState& state : voice.filter) // no denormals left ringing in the filter
+    for (VoiceFilterState& state : voice.filter) // no denormals left ringing in the filter
         state.flushDenormals();
     if (voice.level.stage == Envelope::Stage::Idle) {
         voice.active = false;

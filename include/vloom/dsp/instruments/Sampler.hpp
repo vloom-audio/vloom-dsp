@@ -151,8 +151,8 @@ private:
         float fade = 1.0f;
         Envelope amp;
         Envelope filterEnv;
-        std::array<SvfState, 2> filter{};
-        SvfCoefficients coefficients;
+        std::array<VoiceFilterState, 2> filter{};
+        VoiceFilterCoefficients coefficients;
     };
 
     [[nodiscard]] double value(std::uint32_t id) const noexcept { return values_[id]; }

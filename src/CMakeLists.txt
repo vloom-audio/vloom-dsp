@@ -2,13 +2,22 @@ add_library(vloom_dsp)
 add_library(vloom::dsp ALIAS vloom_dsp)
 
 target_sources(vloom_dsp PRIVATE
+    Oversampler.cpp
     Sample.cpp
     Version.cpp
     Wavetable.cpp
 
     # effects
+    effects/Compressor.cpp
+    effects/Delay.cpp
     effects/Eq.cpp
+    effects/Filter.cpp
     effects/Gain.cpp
+    effects/Gate.cpp
+    effects/Limiter.cpp
+    effects/Reverb.cpp
+    effects/Saturator.cpp
+    effects/Utility.cpp
 
     # instruments
     instruments/DrumSampler.cpp
