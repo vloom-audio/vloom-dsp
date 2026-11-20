@@ -14,8 +14,27 @@ wrapped as CLAP or VST 3 plugins.
 
 > **Status: just started.** The `Effect` concept that hosts wrap
 > (`Processor.hpp`), the effects `Gain` and `Eq` (a parametric equalizer) and
-> building blocks (`SmoothedValue`, `Biquad`). Compressor, limiter, delay and
-> reverb come next.
+> building blocks (`SmoothedValue`, `Biquad`, `NoteValue`). Compressor,
+> limiter, delay and reverb come next.
+
+## Processors
+
+| Id | Class | What it is |
+| --- | --- | --- |
+| `vloom.gain` | `effects/Gain` | Level, -60 .. +12 dB |
+| `vloom.eq` | `effects/Eq` | Parametric equalizer: cuts, shelves, two bells |
+| `vloom.chorus` | `effects/Chorus` | Chorus, 1 .. 4 voices, tempo sync |
+| `vloom.flanger` | `effects/Flanger` | Flanger with +- feedback, tempo sync |
+| `vloom.phaser` | `effects/Phaser` | Phaser, 2 .. 12 stages, tempo sync |
+| `vloom.tremolo` | `effects/Tremolo` | Tremolo and auto-pan, tempo sync |
+| `vloom.deesser` | `effects/DeEsser` | De-esser, wideband or split-band, with listen |
+| `vloom.transient` | `effects/TransientShaper` | Attack and sustain shaper, level-independent |
+| `vloom.bitcrusher` | `effects/Bitcrusher` | Bit depth and sample-rate reduction |
+| `vloom.synth` | `instruments/Synth` | Wavetable synthesizer |
+
+Tempo-synced effects are `TempoAware`: the host calls `setTempo(bpm)`
+(120 until then). Their LFOs run free; they do not follow the transport
+position.
 
 ## Requirements
 

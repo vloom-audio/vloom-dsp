@@ -6,8 +6,15 @@ target_sources(vloom_dsp PRIVATE
     Wavetable.cpp
 
     # effects
+    effects/Bitcrusher.cpp
+    effects/Chorus.cpp
+    effects/DeEsser.cpp
     effects/Eq.cpp
+    effects/Flanger.cpp
     effects/Gain.cpp
+    effects/Phaser.cpp
+    effects/TransientShaper.cpp
+    effects/Tremolo.cpp
 
     # instruments
     instruments/Synth.cpp)
