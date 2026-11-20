@@ -3,6 +3,7 @@
 #pragma once
 
 #include "vloom/dsp/Envelope.hpp"
+#include "vloom/dsp/NoteValue.hpp"
 #include "vloom/dsp/Processor.hpp"
 #include "vloom/dsp/SmoothedValue.hpp"
 #include "vloom/dsp/StateVariableFilter.hpp"
@@ -27,6 +28,11 @@ namespace vloom::dsp {
 ///   thing: the cutoff, a table position, the pitch or the level.
 /// - Up to kMaxVoices notes at once (the oldest gives way), or one at a time
 ///   (mono) with legato and glide.
+/// - Each LFO runs free in Hz or, with its Sync on, one cycle per its Note
+///   at the host's tempo (TempoAware; kDefaultTempo until setTempo()).
+/// - Pitch bend (PitchBendable) moves every voice up to Bend Range
+///   semitones; the mod wheel (ModWheelAware) moves its target like a macro.
+///   Both are the host's controller state: reset() leaves them where they are.
 ///
 /// The oscillators read band-limited tables, so the tables do not alias;
 /// warp and drive add harmonics of their own that can. No latency.
@@ -139,6 +145,18 @@ public:
         kGlide,
         kVoices,
         kVolume,
+        // Appended later (ids above stay as they were).
+        kLfo1Sync,
+        kLfo1Note,
+        kLfo2Sync,
+        kLfo2Note,
+        kLfo3Sync,
+        kLfo3Note,
+        kLfo4Sync,
+        kLfo4Note,
+        kBendRange,
+        kModWheelTarget,
+        kModWheelAmount,
         kParameterCount
     };
 
@@ -177,8 +195,20 @@ public:
     void reset() noexcept;
     [[nodiscard]] int latencyFrames() const noexcept { return 0; }
 
+    /// The host's tempo in BPM (TempoAware): for LFOs with Sync on.
+    void setTempo(double bpm) noexcept;
+    /// The pitch bend wheel, -1 .. 1 (PitchBendable): Bend Range semitones
+    /// down or up for every voice, from the next process().
+    void pitchBend(float amount) noexcept;
+    /// The mod wheel, 0 .. 1 (ModWheelAware): moves Mod Wheel Target by up to
+    /// Mod Wheel Amount, from the next process().
+    void modWheel(float amount) noexcept;
+
     /// Voices sounding now (held or ringing out).
     [[nodiscard]] int activeVoices() const noexcept;
+    [[nodiscard]] double tempo() const noexcept { return tempo_; }
+    /// The rate of LFO `lfo` (0 .. kLfos - 1) now, in Hz: free or synced.
+    [[nodiscard]] double lfoRateHz(int lfo) const noexcept;
 
 private:
     struct Lfo {
@@ -231,7 +261,7 @@ private:
     [[nodiscard]] Voice* freeVoice() noexcept;
     /// One control step for `voice`: its modulation, pitches and filter for the next frames.
     void control(Voice& voice, int frames) noexcept;
-    [[nodiscard]] float lfoValue(Lfo& lfo, std::uint32_t rateId, int frames) noexcept;
+    [[nodiscard]] float lfoValue(Lfo& lfo, std::uint32_t index, int frames) noexcept;
     void render(Voice& voice, float* left, float* right, int frames) noexcept;
     void renderBlock(int frames) noexcept;
 
@@ -252,8 +282,14 @@ private:
     bool anyNoteYet_ = false;
     bool dirty_ = true; ///< a value changed since refresh()
     std::uint32_t seed_ = 0x9E3779B9u;
+    double tempo_ = kDefaultTempo;
+    float bend_ = 0.0f; ///< the pitch bend wheel, -1 .. 1
+    float wheel_ = 0.0f; ///< the mod wheel, 0 .. 1
 };
 
 static_assert(Instrument<Synth>);
+static_assert(TempoAware<Synth>);
+static_assert(PitchBendable<Synth>);
+static_assert(ModWheelAware<Synth>);
 
 } // namespace vloom::dsp

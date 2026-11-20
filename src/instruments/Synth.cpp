@@ -28,6 +28,11 @@ constexpr int kEnvelopeParameters = Synth::kEnv3Attack - Synth::kEnv2Attack;
 constexpr int kLfoParameters = Synth::kLfo2Rate - Synth::kLfo1Rate;
 constexpr int kMacroParameters = Synth::kMacro2 - Synth::kMacro1;
 constexpr const char* kVoicing = "Voicing";
+// Groups of the parameters appended later: a group's parameters follow each
+// other, so these are not in "LFO 1" .. "LFO 4".
+constexpr const char* kLfoSync = "LFO Sync";
+constexpr const char* kControllers = "Controllers";
+constexpr int kLfoSyncParameters = Synth::kLfo2Sync - Synth::kLfo1Sync;
 
 using P = ParameterSpec;
 using S = Synth;
@@ -139,6 +144,17 @@ constexpr std::array<ParameterSpec, Synth::kParameterCount> kParameters{
     P{S::kGlide, "Glide", "ms", 0, 2000, 0, false, kVoicing},
     P{S::kVoices, "Voices", "", 1, S::kMaxVoices, 8, true, kVoicing},
     P{S::kVolume, "Volume", "dB", -60, 6, -6, false, ""},
+    P{S::kLfo1Sync, "LFO 1 Sync", "", 0, 1, 0, true, kLfoSync},
+    P{S::kLfo1Note, "LFO 1 Note", "", 0, kNoteValueCount - 1, note::kQuarter, true, kLfoSync},
+    P{S::kLfo2Sync, "LFO 2 Sync", "", 0, 1, 0, true, kLfoSync},
+    P{S::kLfo2Note, "LFO 2 Note", "", 0, kNoteValueCount - 1, note::kEighth, true, kLfoSync},
+    P{S::kLfo3Sync, "LFO 3 Sync", "", 0, 1, 0, true, kLfoSync},
+    P{S::kLfo3Note, "LFO 3 Note", "", 0, kNoteValueCount - 1, note::kWhole, true, kLfoSync},
+    P{S::kLfo4Sync, "LFO 4 Sync", "", 0, 1, 0, true, kLfoSync},
+    P{S::kLfo4Note, "LFO 4 Note", "", 0, kNoteValueCount - 1, note::kSixteenth, true, kLfoSync},
+    P{S::kBendRange, "Bend Range", "st", 0, 24, 2, true, kControllers},
+    P{S::kModWheelTarget, "Mod Wheel Target", "", 0, S::kTargets - 1, 1, true, kControllers},
+    P{S::kModWheelAmount, "Mod Wheel Amount", "%", -100, 100, 50, false, kControllers},
 };
 
 constexpr bool inIdOrder()
@@ -277,6 +293,32 @@ void Synth::reset() noexcept
     volume_.setCurrentAndTarget(volume_.target());
 }
 
+void Synth::setTempo(double bpm) noexcept
+{
+    if (std::isfinite(bpm) && bpm > 0.0)
+        tempo_ = clampTempo(bpm);
+}
+
+void Synth::pitchBend(float amount) noexcept
+{
+    if (!std::isnan(amount))
+        bend_ = std::clamp(amount, -1.0f, 1.0f);
+}
+
+void Synth::modWheel(float amount) noexcept
+{
+    if (!std::isnan(amount))
+        wheel_ = std::clamp(amount, 0.0f, 1.0f);
+}
+
+double Synth::lfoRateHz(int lfo) const noexcept
+{
+    const auto index = static_cast<std::uint32_t>(std::clamp(lfo, 0, kLfos - 1));
+    const std::uint32_t syncId = kLfo1Sync + index * kLfoSyncParameters;
+    return on(syncId) ? noteHz(static_cast<int>(value(syncId + 1)), tempo_)
+                      : value(kLfo1Rate + index * kLfoParameters);
+}
+
 int Synth::activeVoices() const noexcept
 {
     return static_cast<int>(
@@ -400,11 +442,12 @@ void Synth::noteOff(int key) noexcept
     }
 }
 
-float Synth::lfoValue(Lfo& lfo, std::uint32_t rateId, int frames) noexcept
+float Synth::lfoValue(Lfo& lfo, std::uint32_t index, int frames) noexcept
 {
+    const std::uint32_t rateId = kLfo1Rate + index * kLfoParameters;
     const auto shape = static_cast<LfoShape>(static_cast<int>(value(rateId + 1)));
     const float now = lfoShape(shape, lfo.phase, lfo.held);
-    lfo.phase += static_cast<float>(value(rateId) * frames / sampleRate_);
+    lfo.phase += static_cast<float>(lfoRateHz(static_cast<int>(index)) * frames / sampleRate_);
     if (lfo.phase >= 1.0f) {
         lfo.phase -= std::floor(lfo.phase);
         lfo.held = randomSigned(seed_); // a new value each cycle
@@ -454,7 +497,7 @@ void Synth::control(Voice& voice, int frames) noexcept
     for (std::uint32_t l = 0; l < kLfos; ++l) {
         const std::uint32_t rateId = kLfo1Rate + l * kLfoParameters;
         Lfo& lfo = voice.lfos[l];
-        float out = lfoValue(lfo, rateId, frames);
+        float out = lfoValue(lfo, l, frames);
         // It waits for Delay, then comes in over Rise.
         const auto delay = static_cast<float>(value(rateId + (kLfo1Delay - kLfo1Rate)) / 1000.0);
         const auto rise = static_cast<float>(value(rateId + (kLfo1Rise - kLfo1Rate)) / 1000.0);
@@ -473,6 +516,8 @@ void Synth::control(Voice& voice, int frames) noexcept
         const std::uint32_t macroId = kMacro1 + m * kMacroParameters;
         move(macroId + 1, static_cast<float>(value(macroId) / 100.0), false);
     }
+    move(kModWheelTarget, wheel_, false); // its amount follows it, as a macro's does
+    pitchShift += bend_ * static_cast<float>(value(kBendRange));
     voice.tremolo = tremolo;
     voice.age += static_cast<float>(frames) / rate;
 
@@ -622,8 +667,7 @@ void Synth::renderBlock(int frames) noexcept
     }
     // LFOs that do not retrigger run on whether or not a note sounds.
     for (std::size_t i = 0; i < freeLfos_.size(); ++i) {
-        const std::uint32_t rateId = kLfo1Rate + static_cast<std::uint32_t>(i) * kLfoParameters;
-        freeLfos_[i].phase += static_cast<float>(value(rateId) * frames / sampleRate_);
+        freeLfos_[i].phase += static_cast<float>(lfoRateHz(static_cast<int>(i)) * frames / sampleRate_);
         freeLfos_[i].phase -= std::floor(freeLfos_[i].phase);
     }
 }
