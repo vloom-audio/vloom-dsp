@@ -10,23 +10,31 @@ CPMAddPackage(
 add_executable(vloom_dsp_tests
     BiquadTests.cpp
     DelayLineTests.cpp
-    OversamplerTests.cpp
-    SampleTests.cpp
-    SmoothedValueTests.cpp
-    SvfTests.cpp
+    effects/BitcrusherTests.cpp
+    effects/ChorusTests.cpp
     effects/CompressorTests.cpp
+    effects/DeEsserTests.cpp
     effects/DelayTests.cpp
     effects/EqTests.cpp
     effects/FilterTests.cpp
+    effects/FlangerTests.cpp
     effects/GainTests.cpp
     effects/GateTests.cpp
     effects/LimiterTests.cpp
+    effects/PhaserTests.cpp
     effects/ReverbTests.cpp
     effects/SaturatorTests.cpp
+    effects/TransientShaperTests.cpp
+    effects/TremoloTests.cpp
     effects/UtilityTests.cpp
     instruments/DrumSamplerTests.cpp
     instruments/SamplerTests.cpp
     instruments/SynthTests.cpp
+    NoteValueTests.cpp
+    OversamplerTests.cpp
+    SampleTests.cpp
+    SmoothedValueTests.cpp
+    SvfTests.cpp
     VersionTests.cpp
     WavetableTests.cpp
 
