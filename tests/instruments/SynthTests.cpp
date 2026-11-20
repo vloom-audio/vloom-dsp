@@ -393,3 +393,130 @@ TEST_CASE("Envelope 3 moves what it is pointed at", "[synth]")
     (void)render(synth, 4800);
     CHECK(frequencyOf(render(synth, kSecond / 2).left, 0) == Approx(440.0).margin(1.0));
 }
+
+TEST_CASE("Parameter ids saved in projects stay where they were", "[synth]")
+{
+    // The ids before tempo sync and pitch bend were added, unchanged.
+    STATIC_CHECK(Synth::kAOn == 0);
+    STATIC_CHECK(Synth::kBOn == 11);
+    STATIC_CHECK(Synth::kFilterOn == 26);
+    STATIC_CHECK(Synth::kEnv1Attack == 37);
+    STATIC_CHECK(Synth::kLfo1Rate == 56);
+    STATIC_CHECK(Synth::kLfo4Smooth == 87);
+    STATIC_CHECK(Synth::kMacro1 == 88);
+    STATIC_CHECK(Synth::kMono == 100);
+    STATIC_CHECK(Synth::kVolume == 104);
+    // The new ones come after them.
+    STATIC_CHECK(Synth::kLfo1Sync == 105);
+    STATIC_CHECK(Synth::kLfo1Note == 106);
+    STATIC_CHECK(Synth::kLfo4Note == 112);
+    STATIC_CHECK(Synth::kBendRange == 113);
+    STATIC_CHECK(Synth::kModWheelTarget == 114);
+    STATIC_CHECK(Synth::kModWheelAmount == 115);
+    STATIC_CHECK(Synth::kParameterCount == 116);
+
+    const auto parameters = Synth::parameters();
+    CHECK(std::string_view(parameters[Synth::kLfo1Rate].name) == "LFO 1 Rate");
+    CHECK(std::string_view(parameters[Synth::kVolume].name) == "Volume");
+    CHECK(std::string_view(parameters[Synth::kLfo3Sync].name) == "LFO 3 Sync");
+    CHECK(parameters[Synth::kBendRange].defaultValue == 2.0);
+    CHECK(parameters[Synth::kLfo1Sync].defaultValue == 0.0); // old projects: free-running, as before
+    // A group's parameters follow each other.
+    std::vector<std::string_view> groups;
+    for (const auto& parameter : parameters) {
+        const std::string_view group = parameter.group;
+        if (groups.empty() || groups.back() != group) {
+            CHECK(std::find(groups.begin(), groups.end(), group) == groups.end());
+            groups.push_back(group);
+        }
+    }
+    STATIC_CHECK(vloom::dsp::TempoAware<Synth>);
+    STATIC_CHECK(vloom::dsp::PitchBendable<Synth>);
+    STATIC_CHECK(vloom::dsp::ModWheelAware<Synth>);
+}
+
+TEST_CASE("A synced LFO runs one cycle per note at the tempo", "[synth]")
+{
+    Synth synth = sineSynth();
+    CHECK(synth.tempo() == 120.0);
+    CHECK(synth.lfoRateHz(0) == 2.0); // free: its Rate
+    synth.setParameter(Synth::kLfo1Sync, 1.0);
+    synth.setParameter(Synth::kLfo1Note, vloom::dsp::note::kQuarter);
+    CHECK(synth.lfoRateHz(0) == Approx(2.0)); // a quarter at 120 BPM
+    synth.setTempo(90.0);
+    CHECK(synth.lfoRateHz(0) == Approx(1.5));
+    synth.setParameter(Synth::kLfo1Note, vloom::dsp::note::kEighth);
+    CHECK(synth.lfoRateHz(0) == Approx(3.0));
+    synth.setTempo(std::numeric_limits<double>::quiet_NaN());
+    synth.setTempo(-5.0);
+    CHECK(synth.tempo() == 90.0); // ignored
+    CHECK(synth.lfoRateHz(1) == 5.0); // LFO 2 still free
+
+    // Heard: a tremolo at a quarter note, 60 BPM, is one cycle a second.
+    for (const double bpm : {60.0, 120.0}) {
+        Synth tremolo = sineSynth();
+        tremolo.setTempo(bpm);
+        tremolo.setParameter(Synth::kLfo1Target, static_cast<double>(Synth::Target::Level));
+        tremolo.setParameter(Synth::kLfo1Amount, 100.0);
+        tremolo.setParameter(Synth::kLfo1Rate, 7.3); // not used while synced
+        tremolo.setParameter(Synth::kLfo1Sync, 1.0);
+        tremolo.setParameter(Synth::kLfo1Note, vloom::dsp::note::kQuarter);
+        tremolo.setParameter(Synth::kEnv1Sustain, 100.0);
+        tremolo.noteOn(69, 1.0f);
+        const Stereo out = render(tremolo, 3 * kSecond);
+        const auto level = [&out](double seconds) {
+            const auto at = static_cast<std::ptrdiff_t>(seconds * kRate) - 240;
+            return rms(std::vector<float>(out.left.begin() + at, out.left.begin() + at + 480));
+        };
+        const double period = 60.0 / bpm;
+        INFO("tempo " << bpm);
+        // Loud a quarter of a cycle in, quiet three quarters in, and again a cycle later.
+        CHECK(level(0.25 * period) > 5.0 * level(0.75 * period));
+        CHECK(level(1.25 * period) > 5.0 * level(1.75 * period));
+        CHECK(level(1.25 * period) == Approx(level(0.25 * period)).epsilon(0.02));
+        CHECK(level(1.75 * period) == Approx(level(0.75 * period)).margin(0.01));
+    }
+}
+
+TEST_CASE("Pitch bend moves every voice by up to the bend range", "[synth]")
+{
+    const auto pitchWith = [](float bend, double range) {
+        Synth synth = sineSynth();
+        synth.setParameter(Synth::kBendRange, range);
+        synth.pitchBend(bend);
+        synth.noteOn(69, 1.0f);
+        return frequencyOf(render(synth, kSecond / 2).left, 2400);
+    };
+    CHECK(pitchWith(0.0f, 2.0) == Approx(440.0).margin(0.5));
+    CHECK(pitchWith(1.0f, 2.0) == Approx(440.0 * std::pow(2.0, 2.0 / 12.0)).margin(0.5));
+    CHECK(pitchWith(-1.0f, 2.0) == Approx(440.0 * std::pow(2.0, -2.0 / 12.0)).margin(0.5));
+    CHECK(pitchWith(0.5f, 12.0) == Approx(440.0 * std::pow(2.0, 6.0 / 12.0)).margin(0.5));
+    CHECK(pitchWith(-1.0f, 24.0) == Approx(110.0).margin(0.5));
+    CHECK(pitchWith(3.0f, 2.0) == Approx(440.0 * std::pow(2.0, 2.0 / 12.0)).margin(0.5)); // clamped
+    CHECK(pitchWith(1.0f, 0.0) == Approx(440.0).margin(0.5)); // no range: no bend
+
+    // A held note follows the wheel, and NaN leaves it where it was.
+    Synth synth = sineSynth();
+    synth.noteOn(69, 1.0f);
+    (void)render(synth, 4800);
+    synth.pitchBend(1.0f);
+    synth.pitchBend(std::numeric_limits<float>::quiet_NaN());
+    CHECK(frequencyOf(render(synth, kSecond / 2).left, 0) == Approx(493.88).margin(0.5));
+    synth.pitchBend(0.0f);
+    CHECK(frequencyOf(render(synth, kSecond / 2).left, 0) == Approx(440.0).margin(0.5));
+}
+
+TEST_CASE("The mod wheel moves its target like a macro", "[synth]")
+{
+    Synth synth = sineSynth();
+    synth.setParameter(Synth::kModWheelTarget, static_cast<double>(Synth::Target::Pitch));
+    synth.setParameter(Synth::kModWheelAmount, 100.0);
+    synth.noteOn(57, 1.0f);
+    CHECK(frequencyOf(render(synth, kSecond / 2).left, 0) == Approx(220.0).margin(0.5)); // at rest
+    synth.modWheel(1.0f); // up an octave
+    CHECK(frequencyOf(render(synth, kSecond / 2).left, 0) == Approx(440.0).margin(1.0));
+    synth.modWheel(0.5f);
+    CHECK(frequencyOf(render(synth, kSecond / 2).left, 0) == Approx(311.13).margin(0.5));
+    synth.modWheel(-3.0f); // clamped to 0
+    CHECK(frequencyOf(render(synth, kSecond / 2).left, 0) == Approx(220.0).margin(0.5));
+}

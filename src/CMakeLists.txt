@@ -2,12 +2,14 @@ add_library(vloom_dsp)
 add_library(vloom::dsp ALIAS vloom_dsp)
 
 target_sources(vloom_dsp PRIVATE
+    Fft.cpp
     Oversampler.cpp
     Sample.cpp
     Version.cpp
     Wavetable.cpp
 
     # effects
+    effects/Analyzer.cpp
     effects/Bitcrusher.cpp
     effects/Chorus.cpp
     effects/Compressor.cpp
@@ -23,6 +25,7 @@ target_sources(vloom_dsp PRIVATE
     effects/Reverb.cpp
     effects/Saturator.cpp
     effects/TransientShaper.cpp
+    effects/Tuner.cpp
     effects/Tremolo.cpp
     effects/Utility.cpp
 

@@ -33,7 +33,9 @@ wrapped as CLAP or VST 3 plugins.
 | `vloom.deesser` | `effects/DeEsser` | De-esser, wideband or split-band, with listen | 0 |
 | `vloom.transient` | `effects/TransientShaper` | Attack and sustain shaper, level-independent | 0 |
 | `vloom.bitcrusher` | `effects/Bitcrusher` | Bit depth and sample-rate reduction | 0 |
-| `vloom.synth` | `instruments/Synth` | Wavetable synthesizer | 0 |
+| `vloom.tuner` | `effects/Tuner` | Chromatic tuner (YIN, 30 Hz .. 2 kHz, within a cent), reference 415 .. 466 Hz, mute | 0 |
+| `vloom.analyzer` | `effects/Analyzer` | Spectrum analyzer settings and peak meter; the host draws the spectrum | 0 |
+| `vloom.synth` | `instruments/Synth` | Wavetable synthesizer, tempo-synced LFOs, pitch bend and mod wheel | 0 |
 | `vloom.sampler` | `instruments/Sampler` | One sample across the keyboard: loops, filter, mono and glide (1 sample slot) | 0 |
 | `vloom.drums` | `instruments/DrumSampler` | 16 pads on MIDI keys, with tune, reverse and choke groups (16 sample slots) | 0 |
 
@@ -42,15 +44,25 @@ optional capabilities ([ADR 0003](docs/adr/0003-sidechain-and-tempo-extensions.m
 `SidechainEffect` (compressor, gate: `processWithSidechain()` with a key
 signal) and `TempoAware` (delay, chorus, flanger, phaser, tremolo:
 `setTempo()`, 120 BPM until then). The modulation effects' LFOs run free;
-they do not follow the transport position.
+they do not follow the transport position. The synth is `TempoAware` too
+(LFO sync), and `PitchBendable` and `ModWheelAware`
+([ADR 0006](docs/adr/0006-pitch-bend-and-mod-wheel.md)).
+
+Processors that measure something publish it as readouts (`HasReadouts`,
+[ADR 0005](docs/adr/0005-readouts.md)): `readoutSpecs()` describes them and
+`readout(index)` reads one from any thread, without a lock. Gate (`open`,
+`gain_reduction_db`), compressor, limiter and de-esser
+(`gain_reduction_db`), tuner (`frequency_hz`, `note`, `cents`, `has_pitch`,
+`confidence`, `level_db`) and analyzer (`peak_db`).
 
 The sampler and drums are `SampleSlots`: they play audio the host decodes
 and hands over with `setSample()`, and do no file I/O
 ([ADR 0002](docs/adr/0002-sample-data.md)).
 
 Building blocks: `SmoothedValue`, `Biquad`, `Svf` (state variable filter),
-`DelayLine`, `Oversampler`, `SidechainFilter`, `SharedValue` (lock-free
-meter values), `ParameterValues`, `NoteValue` (tempo-synced note lengths),
+`DelayLine`, `Oversampler`, `SidechainFilter`, `SharedValue` and
+`ReadoutValues` (lock-free meter values), `Fft` (radix-2, allocation-free
+once prepared), `ParameterValues`, `NoteValue` (tempo-synced note lengths),
 `Envelope` (AHDSR), `StateVariableFilter` (the synth's filter), `Wavetable`.
 
 ## Requirements

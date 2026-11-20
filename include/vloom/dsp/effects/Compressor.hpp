@@ -73,6 +73,15 @@ public:
     /// for a meter. Safe to call from any thread.
     [[nodiscard]] float gainReductionDb() const noexcept { return gainReduction_.load(); }
 
+    // Readouts (HasReadouts): indices into readoutSpecs(), only ever appended.
+    enum Readout : std::size_t { kReadoutGainReduction, kReadoutCount };
+    [[nodiscard]] static std::span<const ReadoutSpec> readoutSpecs() noexcept { return kReadouts; }
+    /// gainReductionDb() at kReadoutGainReduction. Any thread.
+    [[nodiscard]] float readout(std::size_t index) const noexcept
+    {
+        return index == kReadoutGainReduction ? gainReductionDb() : 0.0f;
+    }
+
     /// The gain change of the static curve for a level of `inputDb`, in dB
     /// (<= 0): `thresholdDb`, `ratio` (>= 1) and a knee `kneeDb` wide.
     [[nodiscard]] static double staticGainDb(
@@ -82,6 +91,9 @@ public:
     [[nodiscard]] double transferDb(double inputDb) const noexcept;
 
 private:
+    static constexpr std::array<ReadoutSpec, kReadoutCount> kReadouts{
+        ReadoutSpec{"gain_reduction_db", "Gain Reduction", "dB", 0.0, 40.0, false},
+    };
     static constexpr std::array<ParameterSpec, kParameterCount> kParameters{
         ParameterSpec{kThreshold, "Threshold", "dB", -60.0, 0.0, -18.0, false, "Dynamics"},
         ParameterSpec{kRatio, "Ratio", ":1", 1.0, 20.0, 4.0, false, "Dynamics"},
@@ -120,5 +132,6 @@ private:
 };
 
 static_assert(SidechainEffect<Compressor>);
+static_assert(HasReadouts<Compressor>);
 
 } // namespace vloom::dsp

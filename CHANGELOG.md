@@ -7,6 +7,36 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Readouts (`Processor.hpp`, ADR 0005): `ReadoutSpec`, the optional
+  `HasReadouts` capability (`readoutSpecs()`, `readout(index)`, lock-free
+  from any thread) and `findReadout()`; `ReadoutValues<N>` in
+  `SharedValue.hpp`. Gate (`open`, `gain_reduction_db`), Compressor,
+  Limiter and DeEsser (`gain_reduction_db`) publish them; their existing
+  `gainReductionDb()` and `isOpen()` stay.
+- `effects/Tuner` ("vloom.tuner"): monophonic pitch detection (YIN with an
+  FFT difference function and parabolic refinement), 30 Hz .. 2 kHz, within
+  a cent at 44.1 .. 192 kHz; Reference (415 .. 466 Hz), Mute output (on by
+  default, fades), Input (L+R, left, right). Readouts: frequency, MIDI note,
+  cents, has pitch, confidence, input level. Fixed buffers from `prepare()`,
+  at most one detection per block, every 20 ms. No latency.
+- `effects/Analyzer` ("vloom.analyzer"): a bit-exact pass-through with the
+  spectrum display's settings (Speed, Tilt, Range, Peak Hold, Freeze,
+  Resolution 1024 .. 16384, Channel) and a held peak meter readout; the
+  host's UI runs the FFT (ADR 0005). Helpers `fftSize()`,
+  `averagingSeconds()`, `tiltDb()`. No latency.
+- `Fft.hpp`: a radix-2 complex FFT, tables built in `prepare()`, no
+  allocation in `forward()` / `inverse()`.
+- `PitchBendable` and `ModWheelAware` (`Processor.hpp`, ADR 0006): optional
+  `pitchBend(-1 .. 1)` and `modWheel(0 .. 1)` for instruments.
+- `instruments/Synth`: LFO tempo sync (LFO n Sync and Note, `setTempo()`),
+  pitch bend with Bend Range (0 .. 24 semitones, default 2), mod wheel with
+  Mod Wheel Target and Amount; `lfoRateHz()`, `tempo()`. New parameter ids
+  105 .. 115 are appended; the ids before them are unchanged.
+
+### Changed
+- `DeEsser` keeps its meter in a `SharedValue`, so it can be copied like the
+  other effects.
+
 - `SidechainEffect` and `TempoAware` (`Processor.hpp`, ADR 0003): optional
   capabilities. A sidechain effect also has `processWithSidechain(channels,
   key, numChannels, numKeyChannels, frames)`; a tempo-aware processor has

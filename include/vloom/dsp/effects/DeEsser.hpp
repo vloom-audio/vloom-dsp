@@ -4,10 +4,10 @@
 
 #include "vloom/dsp/Biquad.hpp"
 #include "vloom/dsp/Processor.hpp"
+#include "vloom/dsp/SharedValue.hpp"
 #include "vloom/dsp/SmoothedValue.hpp"
 
 #include <array>
-#include <atomic>
 #include <cstddef>
 #include <cstdint>
 
@@ -59,12 +59,21 @@ public:
     /// How far the sibilant band (or, in Wideband mode, the signal) was
     /// turned down at the end of the last process() call, in dB (0 or more).
     /// Safe to read from any thread.
-    [[nodiscard]] float gainReductionDb() const noexcept
+    [[nodiscard]] float gainReductionDb() const noexcept { return reductionDb_.load(); }
+
+    // Readouts (HasReadouts): indices into readoutSpecs(), only ever appended.
+    enum Readout : std::size_t { kReadoutGainReduction, kReadoutCount };
+    [[nodiscard]] static std::span<const ReadoutSpec> readoutSpecs() noexcept { return kReadouts; }
+    /// gainReductionDb() at kReadoutGainReduction. Any thread.
+    [[nodiscard]] float readout(std::size_t index) const noexcept
     {
-        return reductionDb_.load(std::memory_order_relaxed);
+        return index == kReadoutGainReduction ? gainReductionDb() : 0.0f;
     }
 
 private:
+    static constexpr std::array<ReadoutSpec, kReadoutCount> kReadouts{
+        ReadoutSpec{"gain_reduction_db", "Gain Reduction", "dB", 0.0, 24.0, false},
+    };
     static constexpr std::array<ParameterSpec, kParameterCount> kParameters{
         ParameterSpec{kFrequency, "Frequency", "Hz", 2000.0, 16000.0, 6000.0, false, "Detection"},
         ParameterSpec{kThreshold, "Threshold", "dB", -60.0, 0.0, -30.0, false, "Detection"},
@@ -95,7 +104,7 @@ private:
     double sampleRate_ = 0.0; ///< 0: not prepared, passes through
     int untilControl_ = 0;
     bool changed_ = false;
-    std::atomic<float> reductionDb_{0.0f};
+    SharedValue<float> reductionDb_{0.0f};
 
     [[nodiscard]] static constexpr std::array<double, kParameterCount> defaults() noexcept
     {
@@ -107,5 +116,6 @@ private:
 };
 
 static_assert(Effect<DeEsser>);
+static_assert(HasReadouts<DeEsser>);
 
 } // namespace vloom::dsp

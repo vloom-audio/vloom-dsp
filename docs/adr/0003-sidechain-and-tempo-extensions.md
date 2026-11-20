@@ -87,6 +87,8 @@ Dynamics effects report how much they turn the signal down for a meter as
 `[[nodiscard]] float gainReductionDb() const noexcept` (dB, >= 0, the most
 during the last block), lock-free and readable from any thread
 (`SharedValue`). A host may show it when present.
+ADR 0005 generalises this: the same values are also published as readouts
+(`HasReadouts`), which a host can show without knowing the effect.
 
 ### Latency that changes
 

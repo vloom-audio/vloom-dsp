@@ -64,7 +64,28 @@ public:
     /// Whether the gate was open at the end of the last block. Any thread.
     [[nodiscard]] bool isOpen() const noexcept { return open_.load(); }
 
+    // Readouts (HasReadouts): indices into readoutSpecs(), only ever appended.
+    enum Readout : std::size_t { kReadoutOpen, kReadoutGainReduction, kReadoutCount };
+    [[nodiscard]] static std::span<const ReadoutSpec> readoutSpecs() noexcept { return kReadouts; }
+    /// isOpen() (1 or 0) or gainReductionDb(). Any thread.
+    [[nodiscard]] float readout(std::size_t index) const noexcept
+    {
+        switch (index) {
+        case kReadoutOpen:
+            return isOpen() ? 1.0f : 0.0f;
+        case kReadoutGainReduction:
+            return gainReductionDb();
+        default:
+            return 0.0f;
+        }
+    }
+
 private:
+    static constexpr std::array<ReadoutSpec, kReadoutCount> kReadouts{
+        ReadoutSpec{"open", "Open", "", 0.0, 1.0, true},
+        ReadoutSpec{"gain_reduction_db", "Gain Reduction", "dB", 0.0, -kMinRangeDb, false},
+    };
+
     static constexpr std::array<ParameterSpec, kParameterCount> kParameters{
         ParameterSpec{kThreshold, "Threshold", "dB", -80.0, 0.0, -40.0, false, "Gate"},
         ParameterSpec{kHysteresis, "Hysteresis", "dB", 0.0, 20.0, 4.0, false, "Gate"},
@@ -102,5 +123,6 @@ private:
 };
 
 static_assert(SidechainEffect<Gate>);
+static_assert(HasReadouts<Gate>);
 
 } // namespace vloom::dsp
