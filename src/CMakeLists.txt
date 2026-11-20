@@ -2,6 +2,7 @@ add_library(vloom_dsp)
 add_library(vloom::dsp ALIAS vloom_dsp)
 
 target_sources(vloom_dsp PRIVATE
+    Sample.cpp
     Version.cpp
     Wavetable.cpp
 
@@ -10,6 +11,8 @@ target_sources(vloom_dsp PRIVATE
     effects/Gain.cpp
 
     # instruments
+    instruments/DrumSampler.cpp
+    instruments/Sampler.cpp
     instruments/Synth.cpp)
 
 target_include_directories(vloom_dsp PUBLIC

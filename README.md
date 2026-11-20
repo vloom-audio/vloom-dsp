@@ -12,10 +12,25 @@ processors as the built-in effects and instruments of
 nothing about the engine, a plugin format or a UI, the same code can later be
 wrapped as CLAP or VST 3 plugins.
 
-> **Status: just started.** The `Effect` concept that hosts wrap
-> (`Processor.hpp`), the effects `Gain` and `Eq` (a parametric equalizer) and
-> building blocks (`SmoothedValue`, `Biquad`). Compressor, limiter, delay and
-> reverb come next.
+> **Status: just started.** The `Effect` and `Instrument` concepts that hosts
+> wrap (`Processor.hpp`), the optional `SampleSlots` capability for processors
+> that play samples (`Sample.hpp`, ADR 0002), and building blocks
+> (`SmoothedValue`, `Biquad`, `Envelope`, `StateVariableFilter`, `Wavetable`).
+> Compressor, limiter, delay and reverb come next.
+
+## Processors
+
+| Id | Class | What it is |
+| --- | --- | --- |
+| `vloom.gain` | `effects/Gain` | Gain, -60 .. +12 dB |
+| `vloom.eq` | `effects/Eq` | Parametric equalizer: cuts, shelves, two bells |
+| `vloom.synth` | `instruments/Synth` | Wavetable synthesizer |
+| `vloom.sampler` | `instruments/Sampler` | One sample across the keyboard: loops, filter, mono and glide (1 sample slot) |
+| `vloom.drums` | `instruments/DrumSampler` | 16 pads on MIDI keys, with tune, reverse and choke groups (16 sample slots) |
+
+The sampler and drums play audio the host decodes and hands over with
+`setSample()`. They do no file I/O; see
+[ADR 0002](docs/adr/0002-sample-data.md).
 
 ## Requirements
 
