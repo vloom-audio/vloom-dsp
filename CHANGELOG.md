@@ -7,6 +7,42 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `SidechainEffect` and `TempoAware` (`Processor.hpp`, ADR 0003): optional
+  capabilities. A sidechain effect also has `processWithSidechain(channels,
+  key, numChannels, numKeyChannels, frames)`; a tempo-aware processor has
+  `setTempo(bpm)`. Effects without them are wrapped as before.
+- `effects/Compressor` ("vloom.compressor"): threshold, ratio, attack,
+  release, soft knee, peak or RMS detector, stereo link, makeup and auto
+  makeup, dry/wet mix; sidechain key with a high-pass filter and Listen;
+  `gainReductionDb()` for meters, `staticGainDb()` and `transferDb()` for
+  curves. No latency.
+- `effects/Limiter` ("vloom.limiter"): brickwall look-ahead limiter (0.5 ..
+  10 ms), input gain, ceiling, release, stereo link, true peak detection
+  (4x interpolation). No sample ever goes over the ceiling. Latency: the
+  look-ahead, +4 frames with true peak; it changes with those parameters.
+- `effects/Gate` ("vloom.gate"): threshold, hysteresis, range, attack, hold,
+  release; sidechain key with a high-pass filter and Listen. No latency.
+- `effects/Delay` ("vloom.delay"): stereo or ping-pong, time in ms or a note
+  value synced to the host tempo (TempoAware), stereo offset, feedback with
+  low and high cut, width, mix; up to 4 s. No latency.
+- `effects/Reverb` ("vloom.reverb"): an eight-line feedback delay network
+  (ADR 0004) with pre-delay, size, decay (RT60), diffusion, damping, freeze,
+  low and high cut, width and mix. No latency.
+- `effects/Saturator` ("vloom.saturator"): drive into a soft, tube, tape or
+  hard curve at 2x or 4x oversampling, DC blocker, tilt tone, output, mix.
+  Latency 31 frames (2x) or 36 (4x).
+- `effects/Utility` ("vloom.utility"): gain, balance, stereo width, mono,
+  polarity per side, swap, DC blocker; every switch fades. No latency.
+- `effects/Filter` ("vloom.filter"): low-pass, high-pass, band-pass or notch,
+  12 or 24 dB per octave, resonance, drive; built from state variable
+  filters so cutoff and resonance can move every sample. No latency.
+- Building blocks: `Svf.hpp` (trapezoidal state variable filter),
+  `DelayLine`, `Oversampler` (half-band FIR, 2x/4x, whole-frame latency),
+  `SidechainFilter`, `SharedValue` (a copyable lock-free value for meters),
+  `ParameterValues.hpp` (defaults and clamping for id-indexed parameters).
+- Tests: a check that `process()` allocates nothing (the test program
+  counts calls to operator new), shared effect checks (parameter lists,
+  silence, every parameter at its ends and NaN at 44.1 .. 192 kHz).
 - `NoteValue.hpp`: the note lengths (4/1 .. 1/32, dotted and triplet) a
   tempo-synced "Note" parameter chooses from, with `noteSeconds()` and
   `noteHz()`.

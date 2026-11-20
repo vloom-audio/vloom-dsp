@@ -9,22 +9,38 @@ CPMAddPackage(
 # Test files mirror include/vloom/dsp/: tests/<dir>/<Name>Tests.cpp
 add_executable(vloom_dsp_tests
     BiquadTests.cpp
-    NoteValueTests.cpp
-    SmoothedValueTests.cpp
+    DelayLineTests.cpp
     effects/BitcrusherTests.cpp
     effects/ChorusTests.cpp
+    effects/CompressorTests.cpp
     effects/DeEsserTests.cpp
+    effects/DelayTests.cpp
     effects/EqTests.cpp
+    effects/FilterTests.cpp
     effects/FlangerTests.cpp
     effects/GainTests.cpp
+    effects/GateTests.cpp
+    effects/LimiterTests.cpp
     effects/PhaserTests.cpp
+    effects/ReverbTests.cpp
+    effects/SaturatorTests.cpp
     effects/TransientShaperTests.cpp
     effects/TremoloTests.cpp
+    effects/UtilityTests.cpp
+    NoteValueTests.cpp
+    OversamplerTests.cpp
+    SmoothedValueTests.cpp
+    SvfTests.cpp
     instruments/SynthTests.cpp
     VersionTests.cpp
-    WavetableTests.cpp)
+    WavetableTests.cpp
+
+    # Counts allocations (replaces the global operator new) for the
+    # "no allocation in process()" checks.
+    support/AllocationCounter.cpp)
 
 target_link_libraries(vloom_dsp_tests PRIVATE vloom::dsp Catch2::Catch2WithMain)
+target_include_directories(vloom_dsp_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 vloom_dsp_set_warnings(vloom_dsp_tests)
 
 list(APPEND CMAKE_MODULE_PATH ${Catch2_SOURCE_DIR}/extras)

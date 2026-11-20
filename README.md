@@ -12,29 +12,40 @@ processors as the built-in effects and instruments of
 nothing about the engine, a plugin format or a UI, the same code can later be
 wrapped as CLAP or VST 3 plugins.
 
-> **Status: just started.** The `Effect` concept that hosts wrap
-> (`Processor.hpp`), the effects `Gain` and `Eq` (a parametric equalizer) and
-> building blocks (`SmoothedValue`, `Biquad`, `NoteValue`). Compressor,
-> limiter, delay and reverb come next.
-
 ## Processors
 
-| Id | Class | What it is |
-| --- | --- | --- |
-| `vloom.gain` | `effects/Gain` | Level, -60 .. +12 dB |
-| `vloom.eq` | `effects/Eq` | Parametric equalizer: cuts, shelves, two bells |
-| `vloom.chorus` | `effects/Chorus` | Chorus, 1 .. 4 voices, tempo sync |
-| `vloom.flanger` | `effects/Flanger` | Flanger with +- feedback, tempo sync |
-| `vloom.phaser` | `effects/Phaser` | Phaser, 2 .. 12 stages, tempo sync |
-| `vloom.tremolo` | `effects/Tremolo` | Tremolo and auto-pan, tempo sync |
-| `vloom.deesser` | `effects/DeEsser` | De-esser, wideband or split-band, with listen |
-| `vloom.transient` | `effects/TransientShaper` | Attack and sustain shaper, level-independent |
-| `vloom.bitcrusher` | `effects/Bitcrusher` | Bit depth and sample-rate reduction |
-| `vloom.synth` | `instruments/Synth` | Wavetable synthesizer |
+| Id | Class | What it is | Latency |
+|---|---|---|---|
+| `vloom.gain` | `effects/Gain` | Level, -60 .. +12 dB | 0 |
+| `vloom.eq` | `effects/Eq` | Parametric EQ: cuts, shelves, two bells | 0 |
+| `vloom.compressor` | `effects/Compressor` | Compressor: soft knee, peak/RMS, stereo link, parallel mix, sidechain with filter | 0 |
+| `vloom.limiter` | `effects/Limiter` | Brickwall look-ahead limiter, optional true peak | look-ahead (+4 with true peak) |
+| `vloom.gate` | `effects/Gate` | Noise gate: hysteresis, hold, range, sidechain | 0 |
+| `vloom.delay` | `effects/Delay` | Stereo / ping-pong delay, tempo sync, filtered feedback | 0 |
+| `vloom.reverb` | `effects/Reverb` | Algorithmic reverb (8-line FDN), pre-delay, damping, freeze | 0 |
+| `vloom.saturator` | `effects/Saturator` | Waveshaper (soft, tube, tape, hard), 2x/4x oversampled | 31 / 36 |
+| `vloom.utility` | `effects/Utility` | Gain, balance, width, mono, polarity, swap, DC block | 0 |
+| `vloom.filter` | `effects/Filter` | Resonant LP/HP/BP/notch, 12/24 dB, drive | 0 |
+| `vloom.chorus` | `effects/Chorus` | Chorus, 1 .. 4 voices, tempo sync | 0 |
+| `vloom.flanger` | `effects/Flanger` | Flanger with +- feedback, tempo sync | 0 |
+| `vloom.phaser` | `effects/Phaser` | Phaser, 2 .. 12 stages, tempo sync | 0 |
+| `vloom.tremolo` | `effects/Tremolo` | Tremolo and auto-pan, tempo sync | 0 |
+| `vloom.deesser` | `effects/DeEsser` | De-esser, wideband or split-band, with listen | 0 |
+| `vloom.transient` | `effects/TransientShaper` | Attack and sustain shaper, level-independent | 0 |
+| `vloom.bitcrusher` | `effects/Bitcrusher` | Bit depth and sample-rate reduction | 0 |
+| `vloom.synth` | `instruments/Synth` | Wavetable synthesizer | 0 |
 
-Tempo-synced effects are `TempoAware`: the host calls `setTempo(bpm)`
-(120 until then). Their LFOs run free; they do not follow the transport
-position.
+Each one fits the `Effect` or `Instrument` concept in `Processor.hpp`. Two
+optional capabilities ([ADR 0003](docs/adr/0003-sidechain-and-tempo-extensions.md)):
+`SidechainEffect` (compressor, gate: `processWithSidechain()` with a key
+signal) and `TempoAware` (delay, chorus, flanger, phaser, tremolo:
+`setTempo()`, 120 BPM until then). The modulation effects' LFOs run free;
+they do not follow the transport position.
+
+Building blocks: `SmoothedValue`, `Biquad`, `Svf` (state variable filter),
+`DelayLine`, `Oversampler`, `SidechainFilter`, `SharedValue` (lock-free
+meter values), `ParameterValues`, `NoteValue` (tempo-synced note lengths),
+`Wavetable`.
 
 ## Requirements
 
